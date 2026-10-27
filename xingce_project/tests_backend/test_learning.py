@@ -84,3 +84,44 @@ class LearningTest(BackendTest):
   growth=next(t for t in r['topics'] if t['concept_id']=='growth');self.assertEqual(growth['identities'],4);self.assertEqual(growth['occurrences'],4)
   # Multi-label topic membership may overlap; aggregate identity counts never sum these rows.
   self.assertEqual(next(t for t in r['topics'] if t['concept_id']=='fine')['identities'],1)
+ def test_raw_link_blocks_cross_file_protected_material_sibling(self):
+  with sqlite3.connect(self.root/'r1'/'content.sqlite') as c:
+   # q1 is allowed. Its source file also contains q2, which shares the held-out
+   # material with q4 in a different source file. No direct holdout is in q1's file.
+   for qid,changes in [('q2',{'material_id':'protected'}),('q4',{'holdout_reserved':True,'material_id':'protected'})]:
+    q=json.loads(c.execute('SELECT data FROM questions WHERE id=?',(qid,)).fetchone()[0]);q.update(changes);c.execute('UPDATE questions SET data=?,material_id=? WHERE id=?',(json.dumps(q),q['material_id'],qid))
+   for oid,qid,path in [('sibling','q2','synthetic.md'),('held','q4','other-file.md')]:
+    c.execute('INSERT INTO occurrences VALUES(?,?)',(oid,json.dumps({'question_id':qid,'paper_id':'p1','source_path':path})))
+  r=self.client.get('/api/coverage/evidence/q1');self.assertEqual(r.status_code,200)
+  self.assertTrue(all(not s['raw_link_allowed'] for s in r.json()['sources']))
+  self.assertEqual(self.client.get('/api/coverage/evidence/q2').status_code,404)
+  with sqlite3.connect(self.user/'personal.sqlite') as c:
+   self.assertFalse(c.execute("SELECT 1 FROM exposures WHERE question_id IN ('q2','q4')").fetchone())
+ def test_raw_link_blocks_candidate_material_and_reference_only_sources(self):
+  with sqlite3.connect(self.root/'r1'/'content.sqlite') as c:
+   for qid,changes in [('q2',{'material_id':None,'candidate_material_ids':['protected'],'source_refs':[{'source_path':'synthetic.md'}]}),('q4',{'holdout_reserved':True,'material_id':'protected','source_refs':[{'source_path':'other-file.md'}]})]:
+    q=json.loads(c.execute('SELECT data FROM questions WHERE id=?',(qid,)).fetchone()[0]);q.update(changes);c.execute('UPDATE questions SET data=?,material_id=? WHERE id=?',(json.dumps(q),q['material_id'],qid))
+  r=self.client.get('/api/coverage/evidence/q1');self.assertEqual(r.status_code,200)
+  self.assertTrue(all(not s['raw_link_allowed'] for s in r.json()['sources']))
+ def test_old_revision_first_not_replaced_by_hinted_new_revision_redo(self):
+  old=self.session();self.submit(old,'B');self.seed('r2')
+  with sqlite3.connect(self.root/'r2'/'content.sqlite') as c:
+   q=json.loads(c.execute('SELECT data FROM questions WHERE id="q1"').fetchone()[0]);q['revision']=2;c.execute('UPDATE questions SET data=? WHERE id="q1"',(json.dumps(q),))
+  (self.root/'current.json').write_text(json.dumps({'version':'r2'}))
+  new=self.session();a=new['attempts'][0]
+  self.client.post('/api/attempts',json={'session_id':new['id'],'question_id':'q1','attempt_id':a['id'],'action':'submit','selected_option_ids':['A'],'hint_used':True,'guessed':True})
+  p=self.client.get('/api/today').json();self.assertTrue(p['cold_start']);self.assertEqual(p['excluded_first_count'],1)
+  for item in p['items']:
+   for e in item.get('evidence',[]):self.assertEqual(e['first_count'],0);self.assertFalse(e['candidate_unseen'])
+  self.assertIn('历史曝光仍保留',p['notice'])
+ def test_current_revision_real_first_keeps_hint_guess_evidence(self):
+  s=self.session();a=s['attempts'][0]
+  self.client.post('/api/attempts',json={'session_id':s['id'],'question_id':'q1','attempt_id':a['id'],'action':'submit','selected_option_ids':['A'],'hint_used':True,'guessed':True})
+  p=self.client.get('/api/today').json();self.assertFalse(p['cold_start']);self.assertEqual(p['excluded_first_count'],0)
+  e=p['items'][0]['evidence'][0];self.assertEqual(e['first_count'],1);self.assertEqual(e['first_correct'],1);self.assertEqual(e['hint_or_guess_count'],1);self.assertFalse(e['candidate_unseen'])
+ def test_unscorable_first_remains_cold_but_exposed(self):
+  s=self.session();self.submit(s)
+  with sqlite3.connect(self.user/'personal.sqlite') as c:
+   c.execute('UPDATE attempts SET grade=? WHERE id=?',(json.dumps({'correct':None,'answer_status':'unresolved','question_revision':1}),s['attempts'][0]['id']))
+  p=self.client.get('/api/today').json();self.assertTrue(p['cold_start']);self.assertEqual(p['excluded_first_count'],1)
+  self.assertEqual(p['items'][0]['candidate_unseen_count'],0)

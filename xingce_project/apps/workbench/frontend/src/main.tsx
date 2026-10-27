@@ -737,7 +737,7 @@ function App() {
                 <section className="panel">
                   <h2>今天的短路线</h2>
                   <label>计划预算<select aria-label="计划预算" value={budget} onChange={e=>setBudget(Number(e.target.value))}><option value={20}>20分钟</option><option value={40}>40分钟</option></select></label>
-                  <p>{planInfo.notice}</p><p>计划作答约 {planInfo.estimated_minutes} 分钟，另留 {planInfo.reserve_minutes} 分钟复盘。到期 {planInfo.due_count} 题，当前不可安排 {planInfo.due_unavailable_count} 题。</p>
+                  <p>{planInfo.notice}</p><p>不适用于当前掌握的历史首次记录：{planInfo.excluded_first_count || 0}。</p><p>计划作答约 {planInfo.estimated_minutes} 分钟，另留 {planInfo.reserve_minutes} 分钟复盘。到期 {planInfo.due_count} 题，当前不可安排 {planInfo.due_unavailable_count} 题。</p>
                   {!todayTasks.length && <p>当前没有可安排任务；可调整预算或等待跳过期限结束，缺少内容时请查看数据诊断。</p>}
                   {todayTasks.map((t) => (
                     <div className="today-task" key={t.id}>

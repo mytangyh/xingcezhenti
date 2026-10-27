@@ -36,11 +36,14 @@ def plan(index, coverage, attempts, exposures, events, due, settings, now, budge
         if e['type'] == 'question_time' and e.get('duration'):
             times[(e['session_id'],e['question_id'])] += e['duration']
     evidence = defaultdict(list)
+    excluded_first_count=0
     for qid,a in first.items():
         if qid not in qs: continue
         g = json.loads(a['grade'] or '{}')
         # Retain source-only/unknown as missing evidence rather than false scores.
-        if g.get('answer_status') != 'verified' or g.get('correct') is None or g.get('question_revision') != qs[qid].get('revision'): continue
+        if g.get('answer_status') != 'verified' or g.get('correct') is None or g.get('question_revision') != qs[qid].get('revision'):
+            excluded_first_count+=1
+            continue
         for cid in qs[qid].get('_base_concept_ids') or [UNKNOWN]: evidence[(qs[qid]['normalized_module'],cid)].append((a,g))
     topic_map = {(r['module'],r['concept_id']):r for r in coverage['topics']}
     def metrics(q):
@@ -87,4 +90,4 @@ def plan(index, coverage, attempts, exposures, events, due, settings, now, budge
                           reason='模块顺序先验 → 未记录曝光候选 → 首次错误/提示猜测、考点覆盖、来源卷组覆盖代理及耗时；同分按身份排序。'+('无该考点首次可判分记录，使用透明冷启动。' if not any(r['first_count'] for r in evidence_rows) else '首次记录为描述性证据，小样本不作能力定论。')))
     return dict(items=items,budget_minutes=budget,estimated_minutes=round((budget*60*0.8-remaining)/60,1),reserve_minutes=budget*0.2,
                 due_count=len(due_ids),due_unavailable_count=len({r['question_id'] for r in due}-set(eligible)),
-                cold_start=not any(evidence.values()),notice='未建立个人基线时使用模块顺序及覆盖冷启动。耗时缺失按每题120秒计划，预留20%复盘；可调题量/跳过，超时可暂停或结束。未记录曝光候选不保证真正未见；同材料/变式/别名已见不算新迁移。排序分不是官方分值、能力概率或预计涨分。')
+                cold_start=not any(evidence.values()),excluded_first_count=excluded_first_count,notice='历史真实首次若属旧修订或未核验，不计当前掌握，也不以新版重做替代首次；历史曝光仍保留，因此可能继续冷启动。未建立个人基线时使用模块顺序及覆盖冷启动。耗时缺失按每题120秒计划，预留20%复盘；可调题量/跳过，超时可暂停或结束。未记录曝光候选不保证真正未见；同材料/变式/别名已见不算新迁移。排序分不是官方分值、能力概率或预计涨分。')

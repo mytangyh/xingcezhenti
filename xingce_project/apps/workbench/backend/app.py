@@ -483,7 +483,11 @@ def create_app(releases=None,userdata=None,assessments=None):
    if not q or q.get('holdout_reserved') or q.get('material_id') in holdout_materials(c,v) or not q.get('practice_ready') or q.get('answer_status')!='verified':fail(404,'仅提供已核验可练代表题的证据')
    idx=learning_index(c,v)
    refs=[{k:o.get(k) for k in ('source_commit','source_path','source_line','source_local_number','paper_id')} for o in idx['occurrences'] if o['question_id']==qid]
-   reserved_paths={o.get('source_path') for o in idx['occurrences'] if idx['questions'].get(o['question_id'],{}).get('holdout_reserved')}
+   protected=holdout_materials(c,v)
+   # A non-reserved sibling/candidate can expose the same protected material from another file.
+   protected_ids={i for i,x in idx['questions'].items() if x.get('holdout_reserved') or x.get('material_id') in protected or bool(set(x.get('candidate_material_ids',[])) & protected)}
+   reserved_paths={o.get('source_path') for o in idx['occurrences'] if o['question_id'] in protected_ids}
+   reserved_paths.update(ref.get('source_path') for i in protected_ids for ref in idx['questions'][i].get('source_refs',[]))
    for ref in refs:ref['raw_link_allowed']=bool(ref.get('source_path') and ref['source_path'] not in reserved_paths)
    visible_paths={r['source_path'] for r in refs if r['raw_link_allowed']}
    # A source file can reveal more than the representative; conservatively mark all its identities.
@@ -492,7 +496,7 @@ def create_app(releases=None,userdata=None,assessments=None):
    # Viewing the material also exposes sibling/candidate questions.
    if q.get('material_id'):
     expose([i for i,x in idx['questions'].items() if x.get('material_id')==q['material_id'] or q['material_id'] in x.get('candidate_material_ids',[])],'coverage_material_seen')
-   return {'release':v,'question':safe_question(q,c,v),'sources':refs,'notice':'原始证据定位到只读源文件行；代表题不展示答案/解析。可打开的原始文件可能含解析，其全部身份保守记曝光；含留出题的文件不开放原始链接。'}
+   return {'release':v,'question':safe_question(q,c,v),'sources':refs,'notice':'原始证据定位到只读源文件行；代表题不展示答案/解析。可打开的原始文件可能含解析，其全部身份保守记曝光；含留出题或关联受保护材料题的文件不开放原始链接。'}
  @app.get('/api/today')
  def today(budget_minutes:int=40):
   if budget_minutes not in (20,40):fail(422,'预算请选择20或40分钟')
