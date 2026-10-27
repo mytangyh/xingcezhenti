@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "cards",
+  "required": [
+    "card_id",
+    "title",
+    "concept_ids",
+    "approval_status",
+    "is_official"
+  ],
+  "properties": {
+    "card_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "concept_ids": {
+      "type": "array"
+    },
+    "approval_status": {
+      "enum": [
+        "ai_reference_pending_human",
+        "human_approved",
+        "rejected"
+      ]
+    },
+    "is_official": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

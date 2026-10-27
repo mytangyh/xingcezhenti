@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "concepts",
+  "required": [
+    "concept_id",
+    "name",
+    "aliases",
+    "taxonomy_version",
+    "status"
+  ],
+  "properties": {
+    "concept_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "aliases": {
+      "type": "array"
+    },
+    "taxonomy_version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ai_reference",
+        "human_approved"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

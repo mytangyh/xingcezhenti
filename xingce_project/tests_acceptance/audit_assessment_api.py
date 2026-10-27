@@ -1,0 +1,18 @@
+import json,tempfile,sys,sqlite3
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]));from fastapi.testclient import TestClient
+from xingce_project.apps.workbench.backend.app import create_app
+P=Path(__file__).resolve().parents[1];pack='personal-holdout-80-v1';checks={};details={}
+with tempfile.TemporaryDirectory() as d:
+ c=TestClient(create_app(P/'releases',d,P/'assessments'));r=c.get('/api/assessments');checks['metadata_no_key']='verified_answer' not in r.text and 'explanation' not in r.text;checks['explicit_confirm_required']=c.post(f'/api/assessments/{pack}/start',json={}).status_code==422
+ s=c.post(f'/api/assessments/{pack}/start',json={'confirm':True}).json();sid=s['id'];checks['80_mock_locked']=s['mode']=='mock' and len(s['question_ids'])==80 and s['assessment']['scorable_count']==79;checks['pause_denied']=c.post(f'/api/sessions/{sid}/events',json={'type':'pause'}).status_code==409
+ rr=c.get(f'/api/sessions/{sid}/items');items=rr.json()['items'];checks['student_no_key']=all(k not in rr.text for k in ['verified_answer','source_answer','explanation','correct_option']);checks['all_80_prompts']=len(items)==80
+ first=s['attempts'][0];item=next(x for x in items if x['question_id']==first['question_id']);payload={'session_id':sid,'question_id':first['question_id'],'attempt_id':first['id'],'selected_option_ids':[item['options'][0]['option_id']],'action':'submit'};checks['draft_selection']=c.post('/api/attempts',json=payload).status_code==200;checks['pre_final_review_blocked']=c.get('/api/attempts/'+first['id']+'/review').status_code==409
+ checks['reload_pins_pack']=TestClient(create_app(P/'releases',d,P/'assessments')).get('/api/sessions/'+sid).json()['release']=='assessment--'+pack
+ checks['all_submit']=c.post('/api/sessions/'+sid+'/submit',json={}).status_code==200;checks['after_final_review']=c.get('/api/attempts/'+first['id']+'/review').status_code==200
+ db=sqlite3.connect(Path(d)/'personal.sqlite');grades=[json.loads(x[0]) for x in db.execute('select grade from attempts where session_id=?',(sid,))];checks['79_scored_1_null']=sum(x['correct'] is not None for x in grades)==79 and sum(x['correct'] is None for x in grades)==1;db.close()
+ st=c.get('/api/stats').json();checks['not_training_stats']=st['total_submitted']==0
+ repeat=c.post(f'/api/assessments/{pack}/start',json={'confirm':True}).json();checks['repeat_not_unseen']='重做' in repeat['assessment']['attempt_label'];r2=repeat['id'];a2=repeat['attempts'][0];payload.update(session_id=r2,attempt_id=a2['id']);c.post('/api/attempts',json=payload);c.post('/api/sessions/'+r2+'/abandon',json={});resp=c.get('/api/attempts/'+a2['id']+'/review');checks['abandoned_no_partial_key']=resp.status_code==409;details['abandoned_review_http']=resp.status_code
+ db=sqlite3.connect(Path(d)/'personal.sqlite');abandoned_grades=[json.loads(x[0]) for x in db.execute('select grade from attempts where session_id=? and grade is not null',(r2,))];db.close();checks['abandoned_db_no_key']=all(g.get('answer') is None and g.get('correct') is None for g in abandoned_grades)
+ checks['still_hidden_default_search']=not c.get('/api/search',params={'q':first['question_id'],'allow_source_only':True}).json()['items'];checks['ordinary_train_holdout_denied']=c.post('/api/sessions',json={'question_ids':[first['question_id']],'allow_source_only':True}).status_code==422
+report={'pack_id':pack,'checks':checks,'details':details,'all_pass':all(checks.values()),'scope':'actual assessment pack with disposable QA userdata; random first-option or blank selections are synthetic, never user scores'};(P/'acceptance/assessment_api.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False));assert all(checks.values())

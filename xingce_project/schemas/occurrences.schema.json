@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "occurrences",
+  "required": [
+    "occurrence_id",
+    "question_id",
+    "paper_id",
+    "source_qid",
+    "source_commit",
+    "source_path",
+    "source_line"
+  ],
+  "properties": {
+    "occurrence_id": {
+      "type": "string"
+    },
+    "question_id": {
+      "type": "string"
+    },
+    "paper_id": {
+      "type": "string"
+    },
+    "source_qid": {
+      "type": "string"
+    },
+    "source_commit": {
+      "type": "string"
+    },
+    "source_path": {
+      "type": "string"
+    },
+    "source_line": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "papers",
+  "required": [
+    "paper_id",
+    "name",
+    "paper_completeness",
+    "original_order_verified"
+  ],
+  "properties": {
+    "paper_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "paper_completeness": {
+      "enum": [
+        "unverified",
+        "verified",
+        "partial"
+      ]
+    },
+    "original_order_verified": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

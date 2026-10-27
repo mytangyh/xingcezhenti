@@ -1,0 +1,230 @@
+[
+  {
+    "id": "data.share",
+    "source_module": "资料分析",
+    "candidate_fine": "比重候选",
+    "regex": "占.{0,24}(?:比重|比例|百分比)|比重|占比"
+  },
+  {
+    "id": "data.growth_rate",
+    "source_module": "资料分析",
+    "candidate_fine": "增长率候选",
+    "regex": "增长率|增速|增长速度|增长幅度|增长了?[约近]?百分之|增幅"
+  },
+  {
+    "id": "data.growth_amount",
+    "source_module": "资料分析",
+    "candidate_fine": "增长量候选",
+    "regex": "增长量|增量|增加了?多少|增长了?多少|新增"
+  },
+  {
+    "id": "data.average",
+    "source_module": "资料分析",
+    "candidate_fine": "平均数候选",
+    "regex": "平均|人均|每[个家辆户]"
+  },
+  {
+    "id": "data.multiple",
+    "source_module": "资料分析",
+    "candidate_fine": "倍数候选",
+    "regex": "多少倍|几倍|倍于|倍数"
+  },
+  {
+    "id": "data.base",
+    "source_module": "资料分析",
+    "candidate_fine": "基期还原候选",
+    "regex": "上年同期|去年同期|上一年|上年"
+  },
+  {
+    "id": "data.composite",
+    "source_module": "资料分析",
+    "candidate_fine": "综合判断候选",
+    "regex": "能够.{0,6}推出|不能.{0,6}推出|说法.{0,10}(?:正确|错误)|表述.{0,10}(?:正确|错误)"
+  },
+  {
+    "id": "math.work",
+    "source_module": "数量关系",
+    "candidate_fine": "工程效率候选",
+    "regex": "工程|工作效率|合做|合作完成|单独完成|办理.{0,10}业务"
+  },
+  {
+    "id": "math.travel",
+    "source_module": "数量关系",
+    "candidate_fine": "行程候选",
+    "regex": "相遇|追及|车速|速度|路程|千米/小时|公里/小时"
+  },
+  {
+    "id": "math.probability",
+    "source_module": "数量关系",
+    "candidate_fine": "概率候选",
+    "regex": "概率|等可能"
+  },
+  {
+    "id": "math.counting",
+    "source_module": "数量关系",
+    "candidate_fine": "排列组合候选",
+    "regex": "多少种|几种.{0,5}方法|不同.{0,5}方案|排列|组合"
+  },
+  {
+    "id": "math.geometry",
+    "source_module": "数量关系",
+    "candidate_fine": "几何候选",
+    "regex": "面积|周长|体积|半径|圆柱|长方形|正方形|三角形"
+  },
+  {
+    "id": "math.profit",
+    "source_module": "数量关系",
+    "candidate_fine": "利润折扣候选",
+    "regex": "利润|成本|售价|定价|折扣|打.{0,2}折"
+  },
+  {
+    "id": "math.mixture",
+    "source_module": "数量关系",
+    "candidate_fine": "浓度混合候选",
+    "regex": "浓度|溶液|盐水|酒精"
+  },
+  {
+    "id": "math.sequence",
+    "source_module": "数量关系",
+    "candidate_fine": "数列候选",
+    "regex": "等差|等比|数列"
+  },
+  {
+    "id": "language.fill",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "逻辑填空候选",
+    "regex": "填入.{0,20}横线|依次填入|填入.{0,20}空白"
+  },
+  {
+    "id": "language.main",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "主旨意图候选",
+    "regex": "主要(?:说明|介绍|表达|强调|讲述|讨论)|意在(?:说明|强调|阐述)|主旨|核心观点"
+  },
+  {
+    "id": "language.detail",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "细节判断候选",
+    "regex": "符合.{0,8}文意|不符合.{0,8}文意|理解.{0,8}(?:正确|错误)|根据这段文字.{0,12}(?:正确|错误|可知)"
+  },
+  {
+    "id": "language.order",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "语句排序候选",
+    "regex": "排列组合|语序|排序|重新排列"
+  },
+  {
+    "id": "language.continue",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "下文推断候选",
+    "regex": "接下来|接着最|下文最"
+  },
+  {
+    "id": "language.title",
+    "source_module": "言语理解与表达",
+    "candidate_fine": "标题选择候选",
+    "regex": "标题|题目最"
+  },
+  {
+    "id": "reason.strengthen",
+    "source_module": "判断推理",
+    "candidate_fine": "加强论证候选",
+    "regex": "最能.{0,8}支持|最能.{0,8}加强"
+  },
+  {
+    "id": "reason.weaken",
+    "source_module": "判断推理",
+    "candidate_fine": "削弱论证候选",
+    "regex": "最能.{0,8}削弱|最能.{0,8}质疑|最能.{0,8}反驳"
+  },
+  {
+    "id": "reason.assumption",
+    "source_module": "判断推理",
+    "candidate_fine": "前提假设候选",
+    "regex": "前提|必须假设|隐含.{0,5}假设"
+  },
+  {
+    "id": "reason.explain",
+    "source_module": "判断推理",
+    "candidate_fine": "解释评价候选",
+    "regex": "最能.{0,8}解释|最有助于.{0,8}评价"
+  },
+  {
+    "id": "reason.definition",
+    "source_module": "判断推理",
+    "candidate_fine": "定义判断候选",
+    "regex": "根据上述定义|符合.{0,5}定义|不属于上述"
+  },
+  {
+    "id": "reason.condition",
+    "source_module": "判断推理",
+    "candidate_fine": "条件推理候选",
+    "regex": "只有.{0,30}才|除非|如果.{0,30}那么|充分条件|必要条件"
+  },
+  {
+    "id": "reason.figure",
+    "source_module": "判断推理",
+    "candidate_fine": "图形题候选",
+    "regex": "图形|折叠|展开图|立体图"
+  },
+  {
+    "id": "reason.match",
+    "source_module": "判断推理",
+    "candidate_fine": "共材匹配候选",
+    "regex": "匹配|对应关系|根据上述信息|根据以上信息"
+  },
+  {
+    "id": "general.admin",
+    "source_module": "常识判断",
+    "candidate_fine": "行政法候选",
+    "regex": "行政处罚|行政复议|行政许可|行政强制|行政诉讼"
+  },
+  {
+    "id": "general.constitution",
+    "source_module": "常识判断",
+    "candidate_fine": "宪法候选",
+    "regex": "宪法|全国人民代表大会|国家机构"
+  },
+  {
+    "id": "general.civil",
+    "source_module": "常识判断",
+    "candidate_fine": "民法候选",
+    "regex": "民法典|民事|物权|侵权|继承"
+  },
+  {
+    "id": "general.criminal",
+    "source_module": "常识判断",
+    "candidate_fine": "刑法候选",
+    "regex": "刑法|犯罪|刑事"
+  },
+  {
+    "id": "general.science",
+    "source_module": "常识判断",
+    "candidate_fine": "科技常识候选",
+    "regex": "物理|化学|生物|光学|电磁|航天|卫星"
+  },
+  {
+    "id": "general.history",
+    "source_module": "常识判断",
+    "candidate_fine": "历史文化候选",
+    "regex": "历史|朝代|诗句|诗词|古代"
+  },
+  {
+    "id": "politics.newthought",
+    "source_module": "政治理论",
+    "candidate_fine": "新思想候选",
+    "regex": "习近平|新时代中国特色社会主义"
+  },
+  {
+    "id": "politics.party",
+    "source_module": "政治理论",
+    "candidate_fine": "党史党建候选",
+    "regex": "党史|党的建设|中国共产党|党章"
+  },
+  {
+    "id": "politics.philosophy",
+    "source_module": "政治理论",
+    "candidate_fine": "哲学方法候选",
+    "regex": "辩证|唯物|认识论|矛盾|实践与认识"
+  }
+]

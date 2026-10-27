@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "materials",
+  "required": [
+    "material_id",
+    "revision",
+    "raw_text",
+    "stem_markdown",
+    "stem_html",
+    "assets",
+    "binding_status",
+    "source_refs"
+  ],
+  "properties": {
+    "material_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "raw_text": {
+      "type": "string"
+    },
+    "stem_markdown": {
+      "type": "string"
+    },
+    "stem_html": {
+      "type": "string"
+    },
+    "assets": {
+      "type": "array"
+    },
+    "binding_status": {
+      "enum": [
+        "unknown",
+        "source_inferred",
+        "verified",
+        "rejected"
+      ]
+    },
+    "source_refs": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

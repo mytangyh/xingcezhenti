@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "proposal_id",
+    "question_ids",
+    "proposed_label",
+    "status",
+    "evidence_refs"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "proposed",
+        "accepted",
+        "rejected"
+      ]
+    },
+    "question_ids": {
+      "type": "array"
+    },
+    "proposed_label": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

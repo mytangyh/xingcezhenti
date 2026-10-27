@@ -1,0 +1,13 @@
+import json,random,collections,hashlib,re
+from pathlib import Path
+P=Path(__file__).resolve().parents[1];R=P/'releases/content-v6-reviewed550';S=P/'content_review_reasoning/snapshot_0215';out=P/'acceptance/reasoning_blind22/input';out.mkdir(parents=True,exist_ok=True)
+base={q['question_id']:q for q in map(json.loads,(R/'questions.jsonl').open())};anns={a['question_id']:a for a in map(json.loads,(S/'annotations.jsonl').open())};patches=list(map(json.loads,(S/'questions.jsonl').open()));hold={q['question_id'] for q in map(json.loads,(P/'acceptance/holdout/reserved_ids.jsonl').open())};strata=collections.defaultdict(list)
+for q in patches:
+ if q['answer_status']=='verified' and q['question_id'] not in hold:
+  k=anns[q['question_id']]['proposed_type'];strata[k].append(q)
+rng=random.Random(2026102622);chosen=[]
+for k,n in [('定义判断',8),('文字类比',6),('论证推理',5),('条件推理',3)]:chosen.extend((k,x) for x in rng.sample(strata[k],n))
+rng.shuffle(chosen);qs=[];mapping=[]
+for i,(k,p) in enumerate(chosen,1):
+ q={**base[p['question_id']],**p};label=f'Q{i:02d}';assert not q.get('material_id');assert '<img' not in q['stem_html'];qs.append({'id':label,'stem':q['stem_html'],'options':[{'label':o['label'],'text':o['html']} for o in q['options']]});mapping.append({'id':label,'question_id':q['question_id'],'stratum':k,'expected':[x.rsplit('-opt-',1)[-1] for x in q['verified_answer']['option_ids']],'prior_public_example':q.get('prior_public_example',False)})
+(out/'questions.json').write_text(json.dumps({'questions':qs},ensure_ascii=False,indent=2)+'\n');(out/'README.txt').write_text('只读本目录questions.json。独立解22题，各题按Q01等给A/B/C/D及推理、其余选项排除理由；不确定可标unresolved。不得访问题库、映射、生产解析、其他审计结果或联网搜题。原文为考试题，不据此断言现实时政事实。输出由父任务指定路径，封存后父任务再比较。AI独立审计，不是人工或用户成绩。\n');parent=out.parent;(parent/'parent_mapping.json').write_text(json.dumps({'seed':2026102622,'population_verified':sum(map(len,strata.values())),'source_snapshot':'snapshot_0215','items':mapping},ensure_ascii=False,indent=2));report={'count':22,'strata':dict(collections.Counter(k for k,q in chosen)),'population_verified':sum(map(len,strata.values())),'prior_public_in_sample':sum(x['prior_public_example'] for x in mapping),'prior_public_note':'部分题为已交付卡例，不满足用户陌生迁移；新fork-none代理未见答案的独审仍可进行','no_holdout':not any(x['question_id'] in hold for x in mapping),'no_answers_or_qids':not any(x in (out/'questions.json').read_text() for x in ['verified_answer','source_answer','q-','✅','method_ids']),'input_sha256':hashlib.sha256((out/'questions.json').read_bytes()).hexdigest()};(parent/'preparation_report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False))

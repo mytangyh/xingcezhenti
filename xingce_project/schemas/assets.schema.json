@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "assets",
+  "required": [
+    "asset_id",
+    "path",
+    "sha256",
+    "availability",
+    "source_paths",
+    "roles",
+    "license_status"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^assets/[a-f0-9]{64}\\.(png|jpg|jpeg|gif|webp)$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "availability": {
+      "enum": [
+        "available"
+      ]
+    },
+    "source_paths": {
+      "type": "array"
+    },
+    "roles": {
+      "type": "array"
+    },
+    "license_status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

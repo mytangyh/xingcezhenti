@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "assessments",
+  "required": [
+    "assessment_id",
+    "question_id",
+    "reviewer_type"
+  ],
+  "properties": {
+    "assessment_id": {
+      "type": "string"
+    },
+    "question_id": {
+      "type": "string"
+    },
+    "reviewer_type": {
+      "enum": [
+        "AI",
+        "ai",
+        "program",
+        "human"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

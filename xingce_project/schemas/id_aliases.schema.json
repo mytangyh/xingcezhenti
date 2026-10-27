@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "id_aliases",
+  "required": [
+    "alias_id",
+    "source_id",
+    "target_id",
+    "reason"
+  ],
+  "properties": {
+    "alias_id": {
+      "type": "string"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

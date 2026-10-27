@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "questions",
+  "required": [
+    "question_id",
+    "revision",
+    "stem_markdown",
+    "stem_html",
+    "options",
+    "answer_status",
+    "material_binding_status",
+    "practice_ready",
+    "practice_blockers",
+    "concept_ids",
+    "source_refs",
+    "classification_status"
+  ],
+  "properties": {
+    "question_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stem_markdown": {
+      "type": "string"
+    },
+    "stem_html": {
+      "type": "string"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "option_id",
+          "label",
+          "text",
+          "html"
+        ],
+        "properties": {
+          "option_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "answer_status": {
+      "enum": [
+        "source_only",
+        "verified",
+        "disputed",
+        "unresolved"
+      ]
+    },
+    "material_binding_status": {
+      "enum": [
+        "unknown",
+        "source_inferred",
+        "verified",
+        "rejected"
+      ]
+    },
+    "practice_ready": {
+      "type": "boolean"
+    },
+    "practice_blockers": {
+      "type": "array"
+    },
+    "concept_ids": {
+      "type": "array"
+    },
+    "source_refs": {
+      "type": "array"
+    },
+    "classification_status": {
+      "enum": [
+        "unknown",
+        "rule_candidate",
+        "semantic_reviewed",
+        "new_label_proposal"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
