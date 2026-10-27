@@ -32,10 +32,21 @@ jobs:
           npm run typecheck
           npm test
           npm run build
-      - run: |
-          npm install --prefix /tmp/xingce-browser --no-audit --no-fund playwright@1.62.1
-          /tmp/xingce-browser/node_modules/.bin/playwright install --with-deps chromium
-      - run: |
+      - name: Install browser test client
+        timeout-minutes: 3
+        run: npm install --prefix /tmp/xingce-browser --no-audit --no-fund playwright@1.62.1
+      - name: Select available browser or install Chromium
+        timeout-minutes: 5
+        run: |
+          if command -v google-chrome > /dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            google-chrome --version
+          else
+            /tmp/xingce-browser/node_modules/.bin/playwright install --with-deps chromium
+          fi
+      - name: Browser regression with synthetic content
+        timeout-minutes: 3
+        run: |
           python xingce_project/tests_e2e/serve.py > /tmp/xingce-e2e-server.log 2>&1 &
           server=$!
           trap 'kill "$server"' EXIT
