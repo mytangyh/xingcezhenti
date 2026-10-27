@@ -59,6 +59,7 @@ def create_app(releases=None,userdata=None,assessments=None):
   CREATE TABLE IF NOT EXISTS reviews(attempt_id TEXT PRIMARY KEY,error_type TEXT,notes TEXT,due_at REAL,interval_days INTEGER);
   CREATE INDEX IF NOT EXISTS attempt_session ON attempts(session_id); CREATE TABLE IF NOT EXISTS exposures(question_id TEXT PRIMARY KEY,reason TEXT,at REAL); CREATE TABLE IF NOT EXISTS task_settings(id TEXT PRIMARY KEY,data TEXT);''')
  app=FastAPI(title='行测离线工作台',version='1.0.0')
+ learning_cache={};coverage_cache={}
  app.state.dbpath=dbpath;asset_registry={};holdout_material_cache={};search_index_cache={};release_summary_cache={}
  @app.middleware('http')
  async def local_guard(request:Request,call_next):
@@ -305,6 +306,7 @@ def create_app(releases=None,userdata=None,assessments=None):
   allowed=['verified']+(['source_only'] if body.get('allow_source_only') is True else [])
   with content() as (cc,v):
    ids=body.get('question_ids');paper_ids=None;selection_repeat=False;automatic=ids is None
+   if body.get('planned_release') and body['planned_release']!=v:fail(409,'内容版本已切换，请刷新今日任务')
    if ids is not None and (not isinstance(ids,list) or not all(isinstance(i,str) for i in ids)):fail(422,'题目ID列表无效')
    if body.get('paper_id'):
     if not entity(cc,'papers',body['paper_id']):fail(404,'来源卷不存在')
@@ -465,22 +467,46 @@ def create_app(releases=None,userdata=None,assessments=None):
  @app.get('/api/reviews/due')
  def due():
   with db() as c:return {'items':[dict(r) for r in c.execute('SELECT r.*,a.question_id,a.session_id FROM reviews r JOIN attempts a ON a.id=r.attempt_id WHERE due_at<=? ORDER BY due_at',(time.time(),))],'rule':'可调1/3/7天，不是最优间隔的科学结论'}
+ def learning_index(c,v):
+  from .coverage import read_index
+  if v not in learning_cache:learning_cache[v]=read_index(c)
+  return learning_cache[v]
+ @app.get('/api/coverage')
+ def coverage(year:str='',paper_type:str='',module:str=''):
+  from .coverage import build_coverage
+  with content() as (c,v):return {'release':v,**build_coverage(learning_index(c,v),year,paper_type,module)}
+ @app.get('/api/coverage/evidence/{qid}')
+ def coverage_evidence(qid:str):
+  if cards_locked():fail(409,'请先完成组练或模拟，再查看考点与来源证据')
+  with content() as (c,v):
+   q=entity(c,'questions',qid)
+   if not q or q.get('holdout_reserved') or q.get('material_id') in holdout_materials(c,v) or not q.get('practice_ready') or q.get('answer_status')!='verified':fail(404,'仅提供已核验可练代表题的证据')
+   idx=learning_index(c,v)
+   refs=[{k:o.get(k) for k in ('source_commit','source_path','source_line','source_local_number','paper_id')} for o in idx['occurrences'] if o['question_id']==qid]
+   reserved_paths={o.get('source_path') for o in idx['occurrences'] if idx['questions'].get(o['question_id'],{}).get('holdout_reserved')}
+   for ref in refs:ref['raw_link_allowed']=bool(ref.get('source_path') and ref['source_path'] not in reserved_paths)
+   visible_paths={r['source_path'] for r in refs if r['raw_link_allowed']}
+   # A source file can reveal more than the representative; conservatively mark all its identities.
+   expose([o['question_id'] for o in idx['occurrences'] if o.get('source_path') in visible_paths],'coverage_source_file_available')
+   expose([qid],'coverage_representative_seen')
+   # Viewing the material also exposes sibling/candidate questions.
+   if q.get('material_id'):
+    expose([i for i,x in idx['questions'].items() if x.get('material_id')==q['material_id'] or q['material_id'] in x.get('candidate_material_ids',[])],'coverage_material_seen')
+   return {'release':v,'question':safe_question(q,c,v),'sources':refs,'notice':'原始证据定位到只读源文件行；代表题不展示答案/解析。可打开的原始文件可能含解析，其全部身份保守记曝光；含留出题的文件不开放原始链接。'}
  @app.get('/api/today')
- def today():
-  cat=catalog();due_items=due()['items']
-  with db() as c:settings={r[0]:json.loads(r[1]) for r in c.execute('SELECT id,data FROM task_settings')}
-  result=[]
-  if due_items:result.append({'id':'due','title':'到期纠错','reason':'依据你设置的复习日期','count':len(due_items),'items':due_items})
-  priority={'资料分析':0,'判断推理':1,'言语理解与表达':2,'言语理解':2,'数量关系':3}
-  for module in sorted(cat['modules'],key=lambda name:(priority.get(name,4),name)):
-   n=sum(x['count'] for x in cat['counts'] if x['module']==module and x['practice_ready'] and x['answer_status']=='verified')
-   if n:
-    item={'id':'module:'+module,'title':module+'专题','module':module,'count':min(5,n),'available_count':n,'reason':'依据当前已核准题池；并非根据虚构个人成绩推荐'}
-    item.update(settings.get(item['id'],{}))
-    if item.get('skip_until',0)<=time.time():result.append(item)
-  for item in result:item.update(settings.get(item['id'],{}))
-  result=[item for item in result if item.get('skip_until',0)<=time.time()]
-  return {'items':result,'release':cat['release'],'notice':'可调整题量或跳过；未建立个人基线前不推断弱项'}
+ def today(budget_minutes:int=40):
+  if budget_minutes not in (20,40):fail(422,'预算请选择20或40分钟')
+  from .coverage import build_coverage
+  from .planning import plan
+  with content() as (cc,v):
+   idx=learning_index(cc,v)
+   if v not in coverage_cache:coverage_cache[v]=build_coverage(idx)
+  with db() as c:
+   attempts=[dict(r) for r in c.execute("SELECT a.*,s.interrupted FROM attempts a JOIN sessions s ON s.id=a.session_id WHERE s.release NOT LIKE 'assessment--%' ORDER BY a.created")]
+   exposures={r[0]:r[1] for r in c.execute('SELECT question_id,at FROM exposures')}
+   events=[dict(r) for r in c.execute('SELECT * FROM events')]
+   settings={r[0]:json.loads(r[1]) for r in c.execute('SELECT id,data FROM task_settings')}
+  return {'release':v,**plan(idx,coverage_cache[v],attempts,exposures,events,due()['items'],settings,time.time(),budget_minutes)}
  @app.post('/api/today/{task_id:path}')
  def adjust_today(task_id:str,body:dict):
   try:count=max(1,min(int(body.get('count',5)),50))

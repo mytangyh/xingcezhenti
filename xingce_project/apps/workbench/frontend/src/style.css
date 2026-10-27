@@ -855,3 +855,10 @@ footer {
     margin-top: 10px;
   }
 }
+
+.coverage-table { width:100%; min-width:780px; border-collapse:collapse; margin:16px 0; }
+.coverage-table th, .coverage-table td { text-align:left; padding:12px; border-bottom:1px solid #dce4da; vertical-align:top; }
+.coverage-table th { background:#f1f5ed; font-size:0.9rem; }
+.coverage-table td:last-child { min-width:220px; }
+.coverage-table button { display:block; margin:0 0 6px; font-size:0.85rem; padding:8px; }
+.coverage-summary { padding:8px 18px; background:#f1f5ed; border-radius:12px; margin:16px 0; }

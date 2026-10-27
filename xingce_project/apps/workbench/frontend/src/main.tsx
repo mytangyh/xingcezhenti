@@ -1,3 +1,4 @@
+import { Coverage } from './Coverage';
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { api, list, type Data } from "./api";
@@ -16,6 +17,7 @@ import "./style.css";
 
 const NAV = [
   ["today", "今日精练"],
+  ["coverage", "全库覆盖"],
   ["train", "继续训练"],
   ["cards", "方法 / 题库"],
   ["assessment", "个人迁移测验"],
@@ -130,6 +132,9 @@ function CardBody({ card }: { card: Data }) {
 }
 
 function App() {
+  const [budget,setBudget]=useState(40), [planInfo,setPlanInfo]=useState<Data>({});
+  const budgetRef=useRef(budget);budgetRef.current=budget;
+  useEffect(()=>{let active=true;api(`/today?budget_minutes=${budget}`).then(p=>{if(active){setPlanInfo(p);setTodayTasks(list(p.items));}}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[budget]);
   const [page, setPage] = useState("today"),
     [catalog, setCatalog] = useState<Data>({}),
     [sessions, setSessions] = useState<Data[]>([]),
@@ -221,9 +226,9 @@ function App() {
     setDue(list(d.items));
     setStats(st);
     try {
-      setTodayTasks(list((await api("/today")).items).filter(t=>t.module));
-    } catch {
-      setTodayTasks([]);
+      const requestedBudget=budgetRef.current;const p=await api(`/today?budget_minutes=${requestedBudget}`);if(requestedBudget===budgetRef.current){setPlanInfo(p);setTodayTasks(list(p.items));}
+    } catch (e) {
+      setTodayTasks([]);setError((e as Error).message);
     }
   }
   async function loadSession(id: string) {
@@ -636,6 +641,7 @@ function App() {
             })}>{p.previous_starts ? "确认再次开始（重做）" : "确认开始个人测验"}</button></p></section>)}
             <section className="panel"><h2>个人测验记录（独立统计）</h2>{!list(stats.assessment_sessions).length && <p>尚无用户作答记录。</p>}{list(stats.assessment_sessions).map(a=><div className="release-row" key={a.session_id}><div><b>{a.assessment?.attempt_label}</b><p>{a.status === "active" ? "进行中：整卷提交后才评分" : `已评分 ${a.scored_count} 题，答对 ${a.correct_count} 题，未评分 ${a.ungraded_count} 题`}</p>{a.status === "abandoned" && <p>本轮已放弃/中断，不能作为完整能力评估。</p>}</div><button onClick={()=>work(()=>loadSession(a.session_id))}>打开记录</button></div>)}</section>
           </>}
+          {page === "coverage" && <Coverage />}
           {page === "today" && (
             <>
               <div className="page-title">
@@ -726,27 +732,32 @@ function App() {
                   </small>
                 </div>
               </section>
-              {todayTasks.length > 0 && (
+              {(
+
                 <section className="panel">
                   <h2>今天的短路线</h2>
+                  <label>计划预算<select aria-label="计划预算" value={budget} onChange={e=>setBudget(Number(e.target.value))}><option value={20}>20分钟</option><option value={40}>40分钟</option></select></label>
+                  <p>{planInfo.notice}</p><p>计划作答约 {planInfo.estimated_minutes} 分钟，另留 {planInfo.reserve_minutes} 分钟复盘。到期 {planInfo.due_count} 题，当前不可安排 {planInfo.due_unavailable_count} 题。</p>
+                  {!todayTasks.length && <p>当前没有可安排任务；可调整预算或等待跳过期限结束，缺少内容时请查看数据诊断。</p>}
                   {todayTasks.map((t) => (
                     <div className="today-task" key={t.id}>
                       <div>
                         <h3>{t.title}</h3>
                         <p>{t.reason}</p>
+                        <details><summary>查看选题依据</summary>{list(t.evidence).map((e:Data)=><p key={e.question_id}>{e.question_id}：首次 {e.first_correct}/{e.first_count}；提示/猜测 {e.hint_or_guess_count}；题目计时中位数 {e.median_question_seconds ?? "暂无"} 秒；来源卷组覆盖 {e.source_groups}；排序权重 {e.rank_score}（非考分）</p>)}</details>
                         <small>
-                          计划 {t.count} 题 · 可练 {t.available_count}{" "}
-                          题；可在上方修改题量
+                          计划 {t.count} 题 · 可选 {t.available_count} 题 · 约 {Math.ceil(t.estimated_seconds/60)} 分钟；未记录曝光候选 {t.candidate_unseen_count || 0} / 重复 {t.repeat_count || (t.kind==="review"?t.count:0)}
                         </small>
                       </div>
                       <div className="row">
                         <button
-                          disabled={busy}
+                          disabled={busy || planInfo.budget_minutes !== budget}
                           onClick={() =>
-                            start(undefined, {
-                              module: t.module,
+                            start(t.question_ids, {
                               count: t.count,
-                              mode: "group",
+                              mode: "practice",
+                              planned_release: planInfo.release,
+                              allow_source_only: false,
                             })
                           }
                         >

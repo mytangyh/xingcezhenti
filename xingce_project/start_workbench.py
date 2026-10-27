@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -31,6 +32,9 @@ def check_release(releases):
 
 def main():
     parser = argparse.ArgumentParser(description='行测私人学习工作台（仅本机访问）')
+    parser.add_argument('--diagnose', action='store_true', help='列出缺文件诊断，不创建个人数据')
+    parser.add_argument('--import-zip', type=Path, help='导入可信私有内容ZIP，仅恢复releases当前版本，不覆盖已有版本')
+    parser.add_argument('--trusted-content', action='store_true', help='确认导入包来自你信任的来源；哈希不是发行者签名')
     parser.add_argument('--check', action='store_true', help='校验内容包后退出，不启动服务、不创建个人数据')
     parser.add_argument('--releases', type=Path, default=ROOT / 'releases')
     parser.add_argument('--userdata', type=Path, default=ROOT / 'userdata')
@@ -38,6 +42,17 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error('port must be in 1..65535')
+    if args.diagnose:
+        from content_setup import diagnose
+        checks=diagnose(args.releases)
+        print(json.dumps(checks,ensure_ascii=False,indent=2))
+        return 0 if all(x['ok'] for x in checks) else 2
+    if args.import_zip:
+        if not args.trusted_content:parser.error('导入须显式 --trusted-content；仅使用可信私有包')
+        from content_setup import import_zip
+        try:print('已导入：'+import_zip(args.import_zip,args.releases))
+        except (OSError,ValueError,KeyError,TypeError,zipfile.BadZipFile) as exc:
+            print('导入失败：'+str(exc),file=sys.stderr);return 2
     try:
         manifest = check_release(args.releases)
     except (OSError, ValueError, KeyError) as exc:
@@ -52,7 +67,7 @@ def main():
         import uvicorn
         from xingce_project.apps.workbench.backend.app import app
     except ImportError as exc:
-        print(f'缺少运行依赖：{exc}。请按 DELIVERY_README.md 安装官方 requirements。', file=sys.stderr)
+        print(f'缺少运行依赖：{exc}。请按 README.md 安装 requirements。', file=sys.stderr)
         return 3
     print(f'打开 http://127.0.0.1:{args.port} ；退出请按 Ctrl+C。')
     uvicorn.run(app, host='127.0.0.1', port=args.port, workers=1, reload=False)
